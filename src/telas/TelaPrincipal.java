@@ -1,4 +1,5 @@
 package telas;
+import BancoDados.Conexao;
 import javax.swing.table.DefaultTableModel;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -16,8 +17,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.sql.Timestamp;
 
 public class TelaPrincipal extends javax.swing.JFrame
 {
@@ -48,10 +54,10 @@ public class TelaPrincipal extends javax.swing.JFrame
         this.caminhoArquivoManutencoes = "manutencoes.dat";
         this.caminhoManutencoes = caminhoPastaManutencoes + "/" + caminhoArquivoManutencoes;
         this.ultimoIdManutencao = 0;
+        this.telaListaEquipamentos = new TelaListaEquipamentos(this);
         this.telaListaPecas = new TelaListaPecas(this);
         this.telaListaFuncionarios = new TelaListaFuncionarios(this);
         this.telaFuncionario = new TelaFuncionario(telaListaFuncionarios, this);
-        this.telaListaEquipamentos = new TelaListaEquipamentos(this);
         this.telaEquipamento = new TelaEquipamento(telaListaEquipamentos, this);
         this.telaManutencaoCorretiva = new TelaManutencaoCorretiva(this);
         this.telaManutencaoPreventiva = new TelaManutencaoPreventiva(this);
@@ -62,19 +68,7 @@ public class TelaPrincipal extends javax.swing.JFrame
         this.telaEditarFuncionario = new TelaEditarFuncionario(this);
         this.telaEditarPeca = new TelaEditarPeca(this);
         
-        try
-        {
-            manutencoes = carregarManutencoes();
-        }
-        catch (IOException ex)
-        {
-            Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        catch (ClassNotFoundException ex)
-        {
-            Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
+        carregarManutencoes();
         atualizarListaManutencoes();
     }
     
@@ -298,45 +292,120 @@ public class TelaPrincipal extends javax.swing.JFrame
         registrador.close();
     }
     
-    public ArrayList<Manutencao> carregarManutencoes() throws FileNotFoundException, IOException, ClassNotFoundException
+    public ArrayList<Manutencao> carregarManutencoes()
     {
         ArrayList<Manutencao> lista = new ArrayList<Manutencao>();
         
-        File arquivo = new File("data");
-        
-        if(!arquivo.exists() && !arquivo.isDirectory())
-            arquivo.mkdir();
-        
-        arquivo = new File(caminhoManutencoes);
-        
-        if(arquivo.exists())
+        try
         {
-            ObjectInputStream carregador = new ObjectInputStream(new FileInputStream(caminhoManutencoes));
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "SELECT * FROM manutencao LEFT OUTER JOIN manutencao_corretiva ON manutencao.id_manu = manutencao_corretiva.id_manu LEFT OUTER JOIN manutencao_preventiva ON manutencao.id_manu = manutencao_preventiva.id_manu ORDER BY manutencao.id_manu;";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            ResultSet resultado = declaracao.getResultSet();
             
-            try
+            while(resultado.next())
             {
-               lista = (ArrayList<Manutencao>) carregador.readObject();
-               carregador.close();
-            }
-            catch (Exception e)
-            {
-                carregador.close();
-                return lista;
+                Manutencao manutencao = null;
+                
+                if(resultado.getString("tipo_manu").contains("Corretiva"))
+                {
+                    manutencao = new ManutencaoCorretiva(resultado.getTimestamp("data_inicio"), resultado.getTimestamp("data_conclusao"), resultado.getString("causa_falha"), resultado.getString("descricao"), resultado.getBoolean("manu_concluida"));
+                }
+                else
+                {
+                    manutencao = new ManutencaoPreventiva(resultado.getTimestamp("data_inicio"), resultado.getTimestamp("data_conclusao"), resultado.getTimestamp("data_agendamento"), resultado.getString("periodicidade"), resultado.getString("descricao"), resultado.getBoolean("manu_iniciada"), resultado.getBoolean("manu_concluida"));
+                }
+                
+                for(Equipamento equipamento : telaListaEquipamentos.getListaEquipamentos())
+                {
+                    if((equipamento.getId() + 1) == resultado.getInt("id_equip"))
+                        manutencao.setEquipamento(equipamento);
+                
+                    break;
+                }
+                
+                for(Funcionario funcionario : telaListaFuncionarios.getListaFuncionarios())
+                {
+                    if((funcionario.getId() + 1) == resultado.getInt("id_func"))
+                        manutencao.setResponsavel(funcionario);
+                
+                    break;
+                }
+                
+                manutencao.setId(resultado.getInt("id_manu") - 1);
+                lista.add(manutencao);
             }
             
-            if(lista != null && lista.size() != 0)
-                ultimoIdManutencao = lista.get(lista.size() - 1).getId() + 1;
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaListaFuncionarios.class.getName()).log(Level.SEVERE, null, ex);
         }
         
+        manutencoes = lista;
         return lista;
     }
     
     public void adicionarManutencao(Manutencao manutencao)
-    {
+    {        
+        try
+        {
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "SELECT last_value FROM manutencao_id_manu_seq;";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            ResultSet resultado = declaracao.getResultSet();
+            resultado.next();
+            ultimoIdManutencao = resultado.getInt("last_value");
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
         manutencao.setId(ultimoIdManutencao);
         ultimoIdManutencao++;
         manutencoes.add(manutencao);
         atualizarListaManutencoes();
+        
+        try
+        {
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript;
+            PreparedStatement declaracao;
+            
+            if(manutencao.getManutencaoConcluida())
+            {
+                sqlScript = "INSERT INTO manutencao (data_inicio, data_conclusao, manu_iniciada, manu_concluida, descricao, tipo_manu, id_equip, id_func) VALUES ('" + manutencao.getDataInicioTimeStamp() + "', '" + manutencao.getDataConclusaoString() + "', '" + manutencao.getManutencaoIniciada()+ "', '" + manutencao.getManutencaoConcluida() + "', '" + manutencao.getDescricao() + "', '" + manutencao.getTipoManutencao() + "', '" + (manutencao.getEquipamento().getId() + 1) + "', '" + (manutencao.getResponsavel().getId() + 1) + "');";
+            }
+            else
+            {
+                sqlScript = "INSERT INTO manutencao (data_inicio, manu_iniciada, manu_concluida, descricao, tipo_manu, id_equip, id_func) VALUES ('" + manutencao.getDataInicioTimeStamp() + "', '" + manutencao.getManutencaoIniciada() + "', '" + manutencao.getManutencaoConcluida() + "', '" + manutencao.getDescricao() + "', '" + manutencao.getTipoManutencao() + "', '" + (manutencao.getEquipamento().getId() + 1) + "', '" + (manutencao.getResponsavel().getId() + 1) + "');";
+            }
+            
+            declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            
+            if(manutencao.getTipoManutencao() == "Corretiva")
+            {
+                sqlScript = "INSERT INTO manutencao_corretiva (id_manu, causa_falha) VALUES ('" + (manutencao.getId() + 1) + "', '" + ((ManutencaoCorretiva) manutencao).getCausaFalha() + "');";
+            }
+            else
+            {
+                sqlScript = "INSERT INTO manutencao_preventiva (id_manu, data_agendamento, periodicidade) VALUES ('" + (manutencao.getId() + 1) + "', '" + ((ManutencaoPreventiva) manutencao).getDataAgendamentoStamp() + "', '" + ((ManutencaoPreventiva) manutencao).getPeriodicidade() + "');";
+            }
+            
+            declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     public void editarManutencao(Manutencao manutencao, int posicao)

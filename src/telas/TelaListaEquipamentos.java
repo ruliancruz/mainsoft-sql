@@ -1,15 +1,19 @@
 package telas;
+import BancoDados.Conexao;
 import java.util.ArrayList;
 import classes.Equipamento;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 
@@ -33,7 +37,7 @@ public class TelaListaEquipamentos extends javax.swing.JInternalFrame
         
         try
         {
-            listaEquipamentos = carregarEquipamentos();
+            carregarEquipamentos();
         }
         catch (IOException ex)
         {
@@ -136,37 +140,33 @@ public class TelaListaEquipamentos extends javax.swing.JInternalFrame
     {
         ArrayList<Equipamento> lista = new ArrayList<Equipamento>();
         
-        File arquivo = new File("data");
-        
-        if(!arquivo.exists() && !arquivo.isDirectory())
-            arquivo.mkdir();
-        
-        arquivo = new File(caminhoEquipamentos);
-        
-        if(arquivo.exists())
+        try
         {
-            ObjectInputStream carregador = new ObjectInputStream(new FileInputStream(caminhoEquipamentos));
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "SELECT * FROM equipamento";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            ResultSet resultado = declaracao.getResultSet();
             
-            try
+            while(resultado.next())
             {
-                lista = (ArrayList<Equipamento>) carregador.readObject();
-                carregador.close();
-            }
-            catch (Exception e)
-            {
-                carregador.close();
-                return lista;
+                Equipamento equipamento = new Equipamento(resultado.getString("nome"), resultado.getString("modelo"), resultado.getString("fabricante"), (resultado.getString("data_aquisicao").replace('-', '/')));
+                equipamento.setId(resultado.getInt("id_equip") - 1);
+                lista.add(equipamento);
             }
             
-            if(lista != null && lista.size() != 0)
-                ultimoIdEquipamento = lista.get(lista.size() - 1).getId() + 1;
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaListaFuncionarios.class.getName()).log(Level.SEVERE, null, ex);
         }
         
+        listaEquipamentos = lista;
         return lista;
     }
     
     private void botaoEditarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botaoEditarActionPerformed
-        // TODO add your handling code here:
         Equipamento equipamentoSelecionado;
         
         if(tabelaEquipamento.getSelectedRow() != -1)
@@ -185,7 +185,6 @@ public class TelaListaEquipamentos extends javax.swing.JInternalFrame
     }//GEN-LAST:event_botaoEditarActionPerformed
 
     private void botaoRemoverActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botaoRemoverActionPerformed
-        // TODO add your handling code here:
         if(tabelaEquipamento.getSelectedRow() != -1)
         {
             removerEquipamento((listaEquipamentos.get(tabelaEquipamento.getSelectedRow())));
@@ -195,10 +194,39 @@ public class TelaListaEquipamentos extends javax.swing.JInternalFrame
     
     public void adicionarEquipamento(Equipamento equipamento)
     {
+        try
+        {
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "SELECT last_value FROM equipamento_id_equip_seq;";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            ResultSet resultado = declaracao.getResultSet();
+            resultado.next();
+            ultimoIdEquipamento = resultado.getInt("last_value");
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
         equipamento.setId(ultimoIdEquipamento);
         ultimoIdEquipamento++;
         listaEquipamentos.add(equipamento);
         atualizarListaEquipamentos();
+        
+        try
+        {
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "INSERT INTO equipamento (nome, modelo, fabricante, data_aquisicao) VALUES ('" + equipamento.getNome() + "', '" + equipamento.getModelo() + "', '" + equipamento.getFabricante() + "', '" + equipamento.getDataAquisicaoString() + "');";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaListaEquipamentos.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     public void editarEquipamento(Equipamento equipamento, int posicao)
@@ -210,6 +238,48 @@ public class TelaListaEquipamentos extends javax.swing.JInternalFrame
     
     public void removerEquipamento(Equipamento equipamento)
     {
+        try
+        {
+            int quantidadeDependencias = 0;
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "SELECT peca.id_equip FROM peca FULL JOIN manutencao ON peca.id_equip = manutencao.id_equip WHERE peca.id_equip = " + (equipamento.getId() + 1) +";";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            ResultSet resultado = declaracao.getResultSet();
+            
+            while(resultado.next())
+                quantidadeDependencias++;
+            
+            if(quantidadeDependencias > 0 && JOptionPane.showConfirmDialog(this, "Foram encontrados " + quantidadeDependencias + " registros que utilizam este equipamento, deseja removê-los?", "Confirmar Remoção", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) == 0)
+            {
+                sqlScript = "DELETE FROM peca WHERE id_equip = " + (equipamento.getId() + 1) + ";";
+                declaracao = conexao.prepareStatement(sqlScript);
+                declaracao.execute();
+                sqlScript = "DELETE FROM manutencao_corretiva WHERE id_manu IN (SELECT id_manu FROM manutencao WHERE id_equip = " + (equipamento.getId() + 1) + ");";
+                declaracao = conexao.prepareStatement(sqlScript);
+                declaracao.execute();
+                sqlScript = "DELETE FROM manutencao_preventiva WHERE id_manu IN (SELECT id_manu FROM manutencao WHERE id_equip = " + (equipamento.getId() + 1) + ");";
+                declaracao = conexao.prepareStatement(sqlScript);
+                declaracao.execute();
+                sqlScript = "DELETE FROM manutencao WHERE id_equip = " + (equipamento.getId() + 1) + ";";
+                declaracao = conexao.prepareStatement(sqlScript);
+                declaracao.execute();
+                sqlScript = "DELETE FROM equipamento WHERE id_equip = " + (equipamento.getId() + 1) + ";";
+                declaracao = conexao.prepareStatement(sqlScript);
+                declaracao.execute();
+                
+                telaPrincipal.carregarManutencoes();
+                telaPrincipal.getTelaListaPecas().carregarPecas();
+                telaPrincipal.getTelaListaPecas().atualizarListaPecas();
+            }
+            
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
         listaEquipamentos.remove(equipamento);
         atualizarListaEquipamentos();
     }

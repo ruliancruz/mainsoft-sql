@@ -151,7 +151,6 @@ public class TelaEditarFuncionario extends javax.swing.JInternalFrame implements
     }//GEN-LAST:event_botaoSalvarActionPerformed
 
     private void botaoCancelarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botaoCancelarActionPerformed
-        // TODO add your handling code here:
         telaPrincipal.fecharLimparJanela(this);
     }//GEN-LAST:event_botaoCancelarActionPerformed
 

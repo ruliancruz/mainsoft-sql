@@ -1,19 +1,22 @@
 package telas;
 
+import BancoDados.Conexao;
 import classes.Equipamento;
 import java.util.ArrayList;
 import classes.Peca;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
 public class TelaListaPecas extends javax.swing.JInternalFrame
 {
@@ -22,6 +25,7 @@ public class TelaListaPecas extends javax.swing.JInternalFrame
     private final String caminhoArquivoPecas;
     private final String caminhoPecas;
     private ArrayList<Peca> listaPecas;
+    private ArrayList<Equipamento> listaEquipamentos;
     private long ultimoIdPeca;
     
     public TelaListaPecas(TelaPrincipal tela)
@@ -33,19 +37,7 @@ public class TelaListaPecas extends javax.swing.JInternalFrame
         this.ultimoIdPeca = 0;
         telaPrincipal = tela;
         
-        try
-        {
-            listaPecas = carregarPecas();
-        }
-        catch (IOException ex)
-        {
-            Logger.getLogger(TelaListaPecas.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        catch (ClassNotFoundException ex)
-        {
-            Logger.getLogger(TelaListaPecas.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
+        carregarPecas();
         atualizarListaPecas();
     }
     
@@ -123,7 +115,6 @@ public class TelaListaPecas extends javax.swing.JInternalFrame
     }// </editor-fold>//GEN-END:initComponents
 
     private void botaoEditarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botaoEditarActionPerformed
-        // TODO add your handling code here:
         Peca pecaSelecionada;
         int indiceLista = 0;
         
@@ -156,7 +147,6 @@ public class TelaListaPecas extends javax.swing.JInternalFrame
     }//GEN-LAST:event_botaoEditarActionPerformed
 
     private void botaoRemoverActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botaoRemoverActionPerformed
-        // TODO add your handling code here:
         if(tabelaPeca.getSelectedRow() != -1)
         {
             removerPeca((listaPecas.get(tabelaPeca.getSelectedRow())));
@@ -165,56 +155,90 @@ public class TelaListaPecas extends javax.swing.JInternalFrame
     }//GEN-LAST:event_botaoRemoverActionPerformed
     
     public void salvarPecas() throws FileNotFoundException, IOException
-    {
+    {       
         File arquivo = new File("data");
         
         if(arquivo.exists() || arquivo.isDirectory())
-            arquivo.mkdir();
+        arquivo.mkdir();
         
         ObjectOutputStream registrador = new ObjectOutputStream(new FileOutputStream(caminhoPecas));
         registrador.writeObject(listaPecas);
         registrador.close();
     }
     
-    public ArrayList<Peca> carregarPecas() throws FileNotFoundException, IOException, ClassNotFoundException
+    public ArrayList<Peca> carregarPecas()
     {
         ArrayList<Peca> lista = new ArrayList<Peca>();
+        listaEquipamentos = telaPrincipal.getTelaListaEquipamentos().getListaEquipamentos();
         
-        File arquivo = new File("data");
-        
-        if(!arquivo.exists() && !arquivo.isDirectory())
-            arquivo.mkdir();
-        
-        arquivo = new File(caminhoPecas);
-        
-        if(arquivo.exists())
+        try
         {
-            ObjectInputStream carregador = new ObjectInputStream(new FileInputStream(caminhoPecas));
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "SELECT * FROM peca";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            ResultSet resultado = declaracao.getResultSet();
             
-            try
+            while(resultado.next())
             {
-               lista = (ArrayList<Peca>) carregador.readObject(); 
-               carregador.close();
-            }
-            catch (Exception e)
-            {
-                carregador.close();
-                return lista;
+                Peca peca = new Peca(resultado.getString("nome"), resultado.getString("modelo"), resultado.getString("fabricante"));
+                
+                for(Equipamento equipamento : listaEquipamentos)
+                {
+                if((equipamento.getId() + 1) == resultado.getInt("id_equip"))
+                    peca.setEquipamento(equipamento);
+                }
+                
+                peca.setId(resultado.getInt("id_peca") - 1);
+                lista.add(peca);
             }
             
-            if(lista != null && lista.size() != 0)
-                ultimoIdPeca = lista.get(lista.size() - 1).getId() + 1;
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaListaFuncionarios.class.getName()).log(Level.SEVERE, null, ex);
         }
         
+        listaPecas = lista;
         return lista;
     }
     
     public void adicionarPeca(Peca peca)
     {
+        try
+        {
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "SELECT last_value FROM peca_id_peca_seq;";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            ResultSet resultado = declaracao.getResultSet();
+            resultado.next();
+            ultimoIdPeca = resultado.getInt("last_value");
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
         peca.setId(ultimoIdPeca);
         ultimoIdPeca++;
         listaPecas.add(peca);
         atualizarListaPecas();
+        
+        try
+        {
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "INSERT INTO peca (nome, modelo, fabricante, id_equip) VALUES ('" + peca.getNome() + "', '" + peca.getModelo() + "', '" + peca.getFabricante() + "', '" + (peca.getEquipamento().getId() + 1) + "');";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaListaPecas.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     public void editarPeca(Peca peca, int posicao)
@@ -226,8 +250,22 @@ public class TelaListaPecas extends javax.swing.JInternalFrame
     
     public void removerPeca(Peca peca)
     {
+        try
+        {
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "DELETE FROM peca WHERE id_peca = " + (peca.getId() + 1) + ";";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
         listaPecas.remove(peca);
         atualizarListaPecas();
+        carregarPecas();
     }
     
     public void atualizarListaPecas()

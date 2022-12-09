@@ -17,6 +17,13 @@ public class Peca implements Serializable
         this.fabricante = fabricante;
         setEquipamento(equipamento);
     }
+    
+    public Peca(String nome, String modelo, String fabricante)
+    {
+        this.nome = nome;
+        this.modelo = modelo;
+        this.fabricante = fabricante;
+    }
 
     public Equipamento getEquipamento()
     {

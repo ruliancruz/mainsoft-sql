@@ -1,8 +1,13 @@
 package classes;
 
 import java.io.Serializable;
+import java.sql.Timestamp;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public abstract class Manutencao implements Serializable
 {
@@ -93,6 +98,18 @@ public abstract class Manutencao implements Serializable
             return String.format("%02d/%02d/%d", dataInicio.get(Calendar.DAY_OF_MONTH), dataInicio.get(Calendar.MONTH) + 1, dataInicio.get(Calendar.YEAR));
         else
             return "";
+    }
+    
+    public Timestamp getDataInicioTimeStamp()
+    {
+        Timestamp timestamp = new Timestamp(dataInicio.getTimeInMillis());
+        return timestamp;
+    }
+    
+    public Timestamp getDataConclusaoTimeStamp()
+    {
+        Timestamp timestamp = new Timestamp(dataConclusao.getTimeInMillis());
+        return timestamp;
     }
     
     public Calendar getDataConclusao()

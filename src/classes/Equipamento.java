@@ -12,7 +12,7 @@ public class Equipamento implements Serializable
     private long id;
     private String nome;
     private String modelo;
-    private String fabricante; //private Fabricante fabricante;
+    private String fabricante;
     private final SimpleDateFormat formatadorData = new SimpleDateFormat("dd/MM/yyyy");
     private Calendar dataAquisicao = Calendar.getInstance();
     
@@ -30,7 +30,13 @@ public class Equipamento implements Serializable
         {
             Logger.getLogger(Equipamento.class.getName()).log(Level.SEVERE, null, ex);
         }
-
+    }
+    
+    public Equipamento(String nome, String modelo, String fabricante)
+    {
+        this.nome = nome;
+        this.modelo = modelo;
+        this.fabricante = fabricante;
     }
     
     public long getId()
@@ -82,7 +88,6 @@ public class Equipamento implements Serializable
     {
         return dataAquisicao;
     }
-    
 
     public void setDataAquisicao(Calendar dataAquisicao)
     {

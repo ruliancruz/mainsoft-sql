@@ -1,5 +1,6 @@
 package classes;
 
+import java.sql.Timestamp;
 import java.text.ParseException;
 import java.util.Calendar;
 import java.util.logging.Level;
@@ -48,6 +49,24 @@ public class ManutencaoPreventiva extends Manutencao
         setManutencaoIniciada(manutencaoIniciada);
         setManutencaoConcluida(manutencaoConcluida);
     }
+    
+    public ManutencaoPreventiva(Timestamp dataInicioStamp,  Timestamp dataConclusaoStamp, Timestamp dataAgendamentoStamp, String periodicidade, String descricao, boolean manutencaoIniciada, boolean manutencaoConcluida)
+    {
+        if(dataInicioStamp != null)
+            getDataInicio().setTime(dataInicioStamp);
+        
+        if(dataConclusaoStamp != null)
+            getDataConclusao().setTime(dataConclusaoStamp);
+        
+        if(dataAgendamentoStamp != null)
+            getDataAgendamento().setTime(dataAgendamentoStamp);
+        
+        setPeriodicidade(periodicidade);
+        setDescricao(descricao);
+        setTipoManutencao("Preventiva");
+        setManutencaoIniciada(manutencaoIniciada);
+        setManutencaoConcluida(manutencaoConcluida);
+    }
 
     public Calendar getDataAgendamento()
     {
@@ -72,6 +91,12 @@ public class ManutencaoPreventiva extends Manutencao
     public String getHorarioAgendamentoString()
     {
         return String.format("%02d:%02d", dataAgendamento.get(Calendar.HOUR_OF_DAY), dataAgendamento.get(Calendar.MINUTE));
+    }
+    
+    public Timestamp getDataAgendamentoStamp()
+    {
+        Timestamp timestamp = new Timestamp(dataAgendamento.getTimeInMillis());
+        return timestamp;
     }
     
     public String getPeriodicidade()

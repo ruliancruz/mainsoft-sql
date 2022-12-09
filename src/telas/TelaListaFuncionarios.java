@@ -1,5 +1,6 @@
 package telas;
 
+import BancoDados.Conexao;
 import java.util.ArrayList;
 import classes.Funcionario;
 import java.io.File;
@@ -9,10 +10,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+import java.sql.ResultSet;
+import javax.swing.JOptionPane;
 
 public class TelaListaFuncionarios extends javax.swing.JInternalFrame
 {
@@ -34,7 +40,7 @@ public class TelaListaFuncionarios extends javax.swing.JInternalFrame
         
         try
         {
-            listaFuncionarios = carregarFuncionarios();
+            carregarFuncionarios();
         }
         catch (IOException ex)
         {
@@ -138,37 +144,33 @@ public class TelaListaFuncionarios extends javax.swing.JInternalFrame
     {
         ArrayList<Funcionario> lista = new ArrayList<Funcionario>();
         
-        File arquivo = new File("data");
-        
-        if(!arquivo.exists() && !arquivo.isDirectory())
-            arquivo.mkdir();
-        
-        arquivo = new File(caminhoFuncionarios);
-        
-        if(arquivo.exists())
+        try
         {
-            ObjectInputStream carregador = new ObjectInputStream(new FileInputStream(caminhoFuncionarios));
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "SELECT * FROM funcionario";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            ResultSet resultado = declaracao.getResultSet();
             
-            try
+            while(resultado.next())
             {
-                lista = (ArrayList<Funcionario>) carregador.readObject();
-                carregador.close();
-            }
-            catch (Exception e)
-            {
-                carregador.close();
-                return lista;
+                Funcionario funcionario = new Funcionario(resultado.getString("nome"));
+                funcionario.setId(resultado.getInt("id_func") - 1);
+                lista.add(funcionario);
             }
             
-            if(lista != null && lista.size() != 0)
-                ultimoIdFuncionario = lista.get(lista.size() - 1).getId() + 1;
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaListaFuncionarios.class.getName()).log(Level.SEVERE, null, ex);
         }
         
+        listaFuncionarios = lista;
         return lista;
     }
     
     private void botaoEditarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botaoEditarActionPerformed
-        // TODO add your handling code here:
         Funcionario funcionarioSelecionado;
         
         if(tabelaFuncionario.getSelectedRow() != -1)
@@ -184,7 +186,6 @@ public class TelaListaFuncionarios extends javax.swing.JInternalFrame
     }//GEN-LAST:event_botaoEditarActionPerformed
 
     private void botaoRemoverActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botaoRemoverActionPerformed
-        // TODO add your handling code here:
         if(tabelaFuncionario.getSelectedRow() != -1)
         {
             removerFuncionario((listaFuncionarios.get(tabelaFuncionario.getSelectedRow())));
@@ -194,10 +195,39 @@ public class TelaListaFuncionarios extends javax.swing.JInternalFrame
     
     public void adicionarFuncionario(Funcionario funcionario)
     {
+        try
+        {
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "SELECT last_value FROM funcionario_id_func_seq;";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            ResultSet resultado = declaracao.getResultSet();
+            resultado.next();
+            ultimoIdFuncionario = resultado.getInt("last_value");
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
         funcionario.setId(ultimoIdFuncionario);
         ultimoIdFuncionario++;
         listaFuncionarios.add(funcionario);
         atualizarListaFuncionarios();
+        
+        try
+        {
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "INSERT INTO funcionario (nome) VALUES ('" + funcionario.getNome() + "');";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaListaFuncionarios.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     public void editarFuncionario(Funcionario funcionario, int posicao)
@@ -209,8 +239,62 @@ public class TelaListaFuncionarios extends javax.swing.JInternalFrame
     
     public void removerFuncionario(Funcionario funcionario)
     {
+        try
+        {
+            int quantidadeDependencias = 0;
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "SELECT id_func FROM manutencao WHERE id_func = " + (funcionario.getId() + 1) + ";";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            ResultSet resultado = declaracao.getResultSet();
+            
+            while(resultado.next())
+                quantidadeDependencias++;
+            
+            if(quantidadeDependencias > 0 && JOptionPane.showConfirmDialog(this, "Foram encontrados " + quantidadeDependencias + " registros que utilizam este funcionário, deseja removê-los?", "Confirmar Remoção", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) == 0)
+            {
+                sqlScript = "DELETE FROM manutencao_corretiva WHERE id_manu IN (SELECT id_manu FROM manutencao WHERE id_func = " + (funcionario.getId() + 1) + ");";
+                System.out.println(sqlScript);
+                declaracao = conexao.prepareStatement(sqlScript);
+                declaracao.execute();
+                sqlScript = "DELETE FROM manutencao_preventiva WHERE id_manu IN (SELECT id_manu FROM manutencao WHERE id_func = " + (funcionario.getId() + 1) + ");";
+                System.out.println(sqlScript);
+                declaracao = conexao.prepareStatement(sqlScript);
+                declaracao.execute();
+                sqlScript = "DELETE FROM manutencao WHERE id_func = " + (funcionario.getId() + 1) + ";";
+                System.out.println(sqlScript);
+                declaracao = conexao.prepareStatement(sqlScript);
+                declaracao.execute();
+                sqlScript = "DELETE FROM funcionario WHERE id_func = " + (funcionario.getId() + 1) + ";";
+                System.out.println(sqlScript);
+                declaracao = conexao.prepareStatement(sqlScript);
+                declaracao.execute();
+                
+                telaPrincipal.carregarManutencoes();
+            }
+            
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
         listaFuncionarios.remove(funcionario);
         atualizarListaFuncionarios();
+        
+        try
+        {
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "DELETE FROM funcionario WHERE id_func = " + (funcionario.getId() + 1) + ";";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaListaFuncionarios.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     public void atualizarListaFuncionarios()

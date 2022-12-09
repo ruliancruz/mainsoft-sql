@@ -1,5 +1,6 @@
 package classes;
 
+import java.sql.Timestamp;
 import java.text.ParseException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,7 +38,22 @@ public class ManutencaoCorretiva extends Manutencao
         setManutencaoIniciada(true);
         setManutencaoConcluida(manutencaoConcluida);
     }
-
+    
+    public ManutencaoCorretiva(Timestamp dataInicioStamp, Timestamp dataConclusaoStamp, String causaFalha, String descricao, boolean manutencaoConcluida)
+    {
+        if(dataInicioStamp != null)
+            getDataInicio().setTime(dataInicioStamp);
+        
+        if(dataConclusaoStamp != null)
+            getDataConclusao().setTime(dataConclusaoStamp);
+            
+        setDescricao(descricao);
+        setCausaFalha(causaFalha);
+        setTipoManutencao("Corretiva");
+        setManutencaoIniciada(true);
+        setManutencaoConcluida(manutencaoConcluida);
+    }
+    
     public String getCausaFalha()
     {
         return causaFalha;
