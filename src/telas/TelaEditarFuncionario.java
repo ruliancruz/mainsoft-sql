@@ -10,7 +10,6 @@ import javax.swing.JTextField;
 public class TelaEditarFuncionario extends javax.swing.JInternalFrame implements Utils
 {
     private final TelaPrincipal telaPrincipal;
-    private int posicaoListaFuncionario;
 
     public TelaEditarFuncionario(TelaPrincipal tela)
     {
@@ -32,11 +31,6 @@ public class TelaEditarFuncionario extends javax.swing.JInternalFrame implements
     public JLabel getLabelId()
     {
         return labelId;
-    }
-
-    public void setPosicaoListaFuncionario(int posicaoListaFuncionario)
-    {
-        this.posicaoListaFuncionario = posicaoListaFuncionario;
     }
     
     /**
@@ -135,16 +129,8 @@ public class TelaEditarFuncionario extends javax.swing.JInternalFrame implements
             Funcionario funcionario = new Funcionario(campoNome.getText());
         
             funcionario.setId(Integer.parseInt(labelId.getText()));
-            telaPrincipal.getTelaListaFuncionarios().editarFuncionario(funcionario, posicaoListaFuncionario);
-        
-            for(Manutencao item : telaPrincipal.getManutencoes())
-            {
-               if(item.getResponsavel().getId() == funcionario.getId())
-               {
-                   item.setResponsavel(funcionario);
-               }
-            }
-        
+            telaPrincipal.getTelaListaFuncionarios().editarFuncionario(funcionario);
+            telaPrincipal.carregarManutencoes();
             telaPrincipal.atualizarListaManutencoes();
             telaPrincipal.fecharLimparJanela(this);
         }

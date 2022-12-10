@@ -10,7 +10,6 @@ import javax.swing.JTextField;
 public class TelaEditarPeca extends javax.swing.JInternalFrame implements Utils
 {
     private final TelaPrincipal telaPrincipal;
-    private int posicaoListaPeca;
 
     public TelaEditarPeca(TelaPrincipal tela)
     {
@@ -164,13 +163,9 @@ public class TelaEditarPeca extends javax.swing.JInternalFrame implements Utils
         return campoEquipamento;
     }
     
-    public JLabel getLabelId() {
-        return labelId;
-    }
-    
-    public void setPosicaoListaPeca(int posicaoListaPeca)
+    public JLabel getLabelId()
     {
-        this.posicaoListaPeca = posicaoListaPeca;
+        return labelId;
     }
     
     private void campoNomeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_campoNomeActionPerformed
@@ -196,15 +191,16 @@ public class TelaEditarPeca extends javax.swing.JInternalFrame implements Utils
             Peca peca = new Peca(campoNome.getText(), campoModelo.getText(), campoFabricante.getText(), telaPrincipal.getTelaListaEquipamentos().getListaEquipamentos().get(campoEquipamento.getSelectedIndex()));
 
             peca.setId(Integer.parseInt(labelId.getText()));
-            telaPrincipal.getTelaListaPecas().editarPeca(peca, posicaoListaPeca);
+            telaPrincipal.getTelaListaPecas().editarPeca(peca);
+            telaPrincipal.getTelaListaPecas().carregarPecas();
+            telaPrincipal.getTelaListaPecas().atualizarListaPecas();
             telaPrincipal.fecharLimparJanela(this);
         }
     }//GEN-LAST:event_botaoSalvarActionPerformed
-
+    
     private void botaoCancelarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botaoCancelarActionPerformed
         telaPrincipal.fecharLimparJanela(this);
     }//GEN-LAST:event_botaoCancelarActionPerformed
-
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton botaoCancelar;

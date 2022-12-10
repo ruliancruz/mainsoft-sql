@@ -3,13 +3,6 @@ package telas;
 import BancoDados.Conexao;
 import java.util.ArrayList;
 import classes.Funcionario;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -23,34 +16,16 @@ import javax.swing.JOptionPane;
 public class TelaListaFuncionarios extends javax.swing.JInternalFrame
 {
     private final TelaPrincipal telaPrincipal;
-    private final String caminhoPastaFuncionarios;
-    private final String caminhoArquivoFuncionarios;
-    private final String caminhoFuncionarios;
     private ArrayList<Funcionario> listaFuncionarios;
     private long ultimoIdFuncionario;    
 
     public TelaListaFuncionarios(TelaPrincipal tela)
     {
         initComponents();
-        this.caminhoPastaFuncionarios = "data";
-        this.caminhoArquivoFuncionarios = "funcionarios.dat";
-        this.caminhoFuncionarios = caminhoPastaFuncionarios + "/" + caminhoArquivoFuncionarios;
         this.ultimoIdFuncionario = 0;
         telaPrincipal = tela;
         
-        try
-        {
-            carregarFuncionarios();
-        }
-        catch (IOException ex)
-        {
-            Logger.getLogger(TelaListaFuncionarios.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        catch (ClassNotFoundException ex)
-        {
-            Logger.getLogger(TelaListaFuncionarios.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
+        carregarFuncionarios();
         atualizarListaFuncionarios();
     }
 
@@ -128,26 +103,14 @@ public class TelaListaFuncionarios extends javax.swing.JInternalFrame
         pack();
     }// </editor-fold>//GEN-END:initComponents
     
-    public void salvarFuncionarios() throws FileNotFoundException, IOException
-    {
-        File arquivo = new File("data");
-        
-        if(arquivo.exists() || arquivo.isDirectory())
-            arquivo.mkdir();
-        
-        ObjectOutputStream registrador = new ObjectOutputStream(new FileOutputStream(caminhoFuncionarios));
-        registrador.writeObject(listaFuncionarios);
-        registrador.close();
-    }
-    
-    public ArrayList<Funcionario> carregarFuncionarios() throws FileNotFoundException, IOException, ClassNotFoundException
+    public ArrayList<Funcionario> carregarFuncionarios()
     {
         ArrayList<Funcionario> lista = new ArrayList<Funcionario>();
         
         try
         {
             Connection conexao = new Conexao().getConexao();
-            String sqlScript = "SELECT * FROM funcionario";
+            String sqlScript = "SELECT * FROM funcionario ORDER BY id_func";
             PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
             declaracao.execute();
             ResultSet resultado = declaracao.getResultSet();
@@ -178,7 +141,6 @@ public class TelaListaFuncionarios extends javax.swing.JInternalFrame
             if(telaPrincipal.abrirJanela(telaPrincipal.getTelaEditarFuncionario()))
             {
                 funcionarioSelecionado = listaFuncionarios.get(tabelaFuncionario.getSelectedRow());
-                telaPrincipal.getTelaEditarFuncionario().setPosicaoListaFuncionario(tabelaFuncionario.getSelectedRow());
                 telaPrincipal.getTelaEditarFuncionario().getLabelId().setText(String.valueOf(funcionarioSelecionado.getId()));
                 telaPrincipal.getTelaEditarFuncionario().getCampoNome().setText(funcionarioSelecionado.getNome());
             }
@@ -187,10 +149,7 @@ public class TelaListaFuncionarios extends javax.swing.JInternalFrame
 
     private void botaoRemoverActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botaoRemoverActionPerformed
         if(tabelaFuncionario.getSelectedRow() != -1)
-        {
             removerFuncionario((listaFuncionarios.get(tabelaFuncionario.getSelectedRow())));
-            atualizarListaFuncionarios();
-        }
     }//GEN-LAST:event_botaoRemoverActionPerformed
     
     public void adicionarFuncionario(Funcionario funcionario)
@@ -230,10 +189,21 @@ public class TelaListaFuncionarios extends javax.swing.JInternalFrame
         }
     }
     
-    public void editarFuncionario(Funcionario funcionario, int posicao)
+    public void editarFuncionario(Funcionario funcionario)
     {
-        listaFuncionarios.remove(posicao);
-        listaFuncionarios.add(posicao, funcionario);
+        try
+        {
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "UPDATE funcionario SET nome = '" + funcionario.getNome() + "' WHERE id_func = " + (funcionario.getId() + 1) + ";";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaListaFuncionarios.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        carregarFuncionarios();
         atualizarListaFuncionarios();
     }
     
@@ -254,23 +224,19 @@ public class TelaListaFuncionarios extends javax.swing.JInternalFrame
             if(quantidadeDependencias > 0 && JOptionPane.showConfirmDialog(this, "Foram encontrados " + quantidadeDependencias + " registros que utilizam este funcionário, deseja removê-los?", "Confirmar Remoção", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) == 0)
             {
                 sqlScript = "DELETE FROM manutencao_corretiva WHERE id_manu IN (SELECT id_manu FROM manutencao WHERE id_func = " + (funcionario.getId() + 1) + ");";
-                System.out.println(sqlScript);
                 declaracao = conexao.prepareStatement(sqlScript);
                 declaracao.execute();
                 sqlScript = "DELETE FROM manutencao_preventiva WHERE id_manu IN (SELECT id_manu FROM manutencao WHERE id_func = " + (funcionario.getId() + 1) + ");";
-                System.out.println(sqlScript);
                 declaracao = conexao.prepareStatement(sqlScript);
                 declaracao.execute();
                 sqlScript = "DELETE FROM manutencao WHERE id_func = " + (funcionario.getId() + 1) + ";";
-                System.out.println(sqlScript);
                 declaracao = conexao.prepareStatement(sqlScript);
                 declaracao.execute();
                 sqlScript = "DELETE FROM funcionario WHERE id_func = " + (funcionario.getId() + 1) + ";";
-                System.out.println(sqlScript);
                 declaracao = conexao.prepareStatement(sqlScript);
                 declaracao.execute();
-                
                 telaPrincipal.carregarManutencoes();
+                telaPrincipal.atualizarListaManutencoes();
             }
             
             conexao.close();
@@ -280,9 +246,6 @@ public class TelaListaFuncionarios extends javax.swing.JInternalFrame
             Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
         }
         
-        listaFuncionarios.remove(funcionario);
-        atualizarListaFuncionarios();
-        
         try
         {
             Connection conexao = new Conexao().getConexao();
@@ -290,6 +253,8 @@ public class TelaListaFuncionarios extends javax.swing.JInternalFrame
             PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
             declaracao.execute();
             conexao.close();
+            carregarFuncionarios();
+            atualizarListaFuncionarios();
         }
         catch (SQLException ex)
         {
@@ -303,15 +268,6 @@ public class TelaListaFuncionarios extends javax.swing.JInternalFrame
         
         for(Funcionario item : listaFuncionarios)
             ((DefaultTableModel) tabelaFuncionario.getModel()).addRow(new Object[]{ item.getId(), item.getNome() });
-         
-        try
-        {
-            salvarFuncionarios();
-        }
-        catch (IOException ex)
-        {
-            Logger.getLogger(TelaListaFuncionarios.class.getName()).log(Level.SEVERE, null, ex);
-        }
     }
     
     public ArrayList<Funcionario> getListaFuncionarios()

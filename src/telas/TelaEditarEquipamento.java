@@ -11,7 +11,6 @@ import javax.swing.JTextField;
 public class TelaEditarEquipamento extends javax.swing.JInternalFrame implements Utils
 {
     private final TelaPrincipal telaPrincipal;
-    private int posicaoListaEquipamento;
     
     public TelaEditarEquipamento(TelaPrincipal tela)
     {
@@ -51,11 +50,6 @@ public class TelaEditarEquipamento extends javax.swing.JInternalFrame implements
     public JLabel getLabelId()
     {
         return labelId;
-    }
-
-    public void setPosicaoListaEquipamento(int posicaoListaEquipamento)
-    {
-        this.posicaoListaEquipamento = posicaoListaEquipamento;
     }
     
     @SuppressWarnings("unchecked")
@@ -194,24 +188,11 @@ public class TelaEditarEquipamento extends javax.swing.JInternalFrame implements
             Equipamento equipamento = new Equipamento(campoNome.getText(), campoModelo.getText(), campoFabricante.getText(), campoDataAquisicao.getText());
         
             equipamento.setId(Integer.parseInt(labelId.getText()));
-            telaPrincipal.getTelaListaEquipamentos().editarEquipamento(equipamento, posicaoListaEquipamento);
-        
-            for(Manutencao item : telaPrincipal.getManutencoes())
-            {
-                if(item.getEquipamento().getId() == equipamento.getId())
-               {
-                   item.setEquipamento(equipamento);
-               }
-            }
-        
-            for(Peca item : telaPrincipal.getTelaListaPecas().getListaPecas())
-            {
-                if(item.getEquipamento().getId() == equipamento.getId())
-                {
-                    item.setEquipamento(equipamento);
-                }
-            }
-
+            telaPrincipal.getTelaListaEquipamentos().editarEquipamento(equipamento);
+            telaPrincipal.getTelaListaEquipamentos().carregarEquipamentos();
+            telaPrincipal.getTelaListaPecas().carregarPecas();
+            telaPrincipal.carregarManutencoes();
+            telaPrincipal.getTelaListaEquipamentos().atualizarListaEquipamentos();
             telaPrincipal.atualizarListaManutencoes();
             telaPrincipal.getTelaListaPecas().atualizarListaPecas();
             telaPrincipal.fecharLimparJanela(this);
@@ -219,7 +200,6 @@ public class TelaEditarEquipamento extends javax.swing.JInternalFrame implements
     }//GEN-LAST:event_botaoSalvarActionPerformed
 
     private void botaoCancelarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botaoCancelarActionPerformed
-        // TODO add your handling code here:
         telaPrincipal.fecharLimparJanela(this);
     }//GEN-LAST:event_botaoCancelarActionPerformed
 

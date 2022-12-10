@@ -14,7 +14,6 @@ import javax.swing.JTextField;
 public class TelaEditarManutencaoPreventiva extends javax.swing.JInternalFrame implements Utils
 {
     private final TelaPrincipal telaPrincipal;
-    private int posicaoListaManutencao;
     
     public TelaEditarManutencaoPreventiva(TelaPrincipal tela)
     {
@@ -150,11 +149,6 @@ public class TelaEditarManutencaoPreventiva extends javax.swing.JInternalFrame i
     public JLabel getLabelId()
     {
         return labelId;
-    }
-    
-    public void setPosicaoListaManutencao(int posicaoListaManutencao)
-    {
-        this.posicaoListaManutencao = posicaoListaManutencao;
     }
     
     /**
@@ -463,7 +457,7 @@ public class TelaEditarManutencaoPreventiva extends javax.swing.JInternalFrame i
             );
 
             manutencao.setId(Integer.parseInt(labelId.getText()));
-            telaPrincipal.editarManutencao(manutencao, posicaoListaManutencao);
+            telaPrincipal.editarManutencao(manutencao);
             telaPrincipal.fecharLimparJanela(this);
         }
     }//GEN-LAST:event_botaoSalvarActionPerformed

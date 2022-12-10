@@ -14,6 +14,7 @@ public class Equipamento implements Serializable
     private String modelo;
     private String fabricante;
     private final SimpleDateFormat formatadorData = new SimpleDateFormat("dd/MM/yyyy");
+    private final SimpleDateFormat formatadorDataSQL = new SimpleDateFormat("yyyy-MM-dd");
     private Calendar dataAquisicao = Calendar.getInstance();
     
     public Equipamento(String nome, String modelo, String fabricante, String dataAquisicaoString)
@@ -83,6 +84,11 @@ public class Equipamento implements Serializable
     {
         return formatadorData;
     }
+
+    public SimpleDateFormat getFormatadorDataSQL()
+    {
+        return formatadorDataSQL;
+    }
     
     public Calendar getDataAquisicao()
     {
@@ -97,5 +103,22 @@ public class Equipamento implements Serializable
     public String getDataAquisicaoString()
     {
         return String.format("%02d/%02d/%d", dataAquisicao.get(Calendar.DAY_OF_MONTH), dataAquisicao.get(Calendar.MONTH) + 1, dataAquisicao.get(Calendar.YEAR));
+    }
+    
+    public String getDataAquisicaoStringSQL()
+    {
+        return String.format("%d-%02d-%02d", dataAquisicao.get(Calendar.YEAR), dataAquisicao.get(Calendar.MONTH) + 1, dataAquisicao.get(Calendar.DAY_OF_MONTH));
+    }
+    
+    public void setDataAquisicaoSQL(String dataAquisicaoString)
+    {
+        try
+        {
+            getDataAquisicao().setTime(getFormatadorDataSQL().parse(dataAquisicaoString));
+        }
+        catch (ParseException ex)
+        {
+            Logger.getLogger(Equipamento.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 }

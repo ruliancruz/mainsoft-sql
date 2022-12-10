@@ -1,4 +1,5 @@
 package telas;
+
 import BancoDados.Conexao;
 import javax.swing.table.DefaultTableModel;
 import java.util.ArrayList;
@@ -9,21 +10,13 @@ import classes.Funcionario;
 import classes.ManutencaoPreventiva;
 import classes.ManutencaoCorretiva;
 import classes.Utils;
-import java.io.File;
 import javax.swing.JInternalFrame;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.sql.Timestamp;
 
 public class TelaPrincipal extends javax.swing.JFrame
 {
@@ -40,9 +33,6 @@ public class TelaPrincipal extends javax.swing.JFrame
     private final TelaEditarEquipamento telaEditarEquipamento;
     private final TelaEditarFuncionario telaEditarFuncionario;
     private final TelaEditarPeca telaEditarPeca;
-    private final String caminhoPastaManutencoes;
-    private final String caminhoArquivoManutencoes;
-    private final String caminhoManutencoes;
     private Calendar agora;
     private ArrayList<Manutencao> manutencoes;
     private long ultimoIdManutencao;
@@ -50,9 +40,6 @@ public class TelaPrincipal extends javax.swing.JFrame
     public TelaPrincipal()
     {
         initComponents();
-        this.caminhoPastaManutencoes = "data";
-        this.caminhoArquivoManutencoes = "manutencoes.dat";
-        this.caminhoManutencoes = caminhoPastaManutencoes + "/" + caminhoArquivoManutencoes;
         this.ultimoIdManutencao = 0;
         this.telaListaEquipamentos = new TelaListaEquipamentos(this);
         this.telaListaPecas = new TelaListaPecas(this);
@@ -280,18 +267,6 @@ public class TelaPrincipal extends javax.swing.JFrame
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
     
-    public void salvarManutencoes() throws FileNotFoundException, IOException
-    {
-        File arquivo = new File("data");
-        
-        if(arquivo.exists() || arquivo.isDirectory())
-            arquivo.mkdir();
-        
-        ObjectOutputStream registrador = new ObjectOutputStream(new FileOutputStream(caminhoManutencoes));
-        registrador.writeObject(manutencoes);
-        registrador.close();
-    }
-    
     public ArrayList<Manutencao> carregarManutencoes()
     {
         ArrayList<Manutencao> lista = new ArrayList<Manutencao>();
@@ -321,16 +296,12 @@ public class TelaPrincipal extends javax.swing.JFrame
                 {
                     if((equipamento.getId() + 1) == resultado.getInt("id_equip"))
                         manutencao.setEquipamento(equipamento);
-                
-                    break;
                 }
                 
                 for(Funcionario funcionario : telaListaFuncionarios.getListaFuncionarios())
                 {
                     if((funcionario.getId() + 1) == resultado.getInt("id_func"))
                         manutencao.setResponsavel(funcionario);
-                
-                    break;
                 }
                 
                 manutencao.setId(resultado.getInt("id_manu") - 1);
@@ -349,7 +320,7 @@ public class TelaPrincipal extends javax.swing.JFrame
     }
     
     public void adicionarManutencao(Manutencao manutencao)
-    {        
+    {
         try
         {
             Connection conexao = new Conexao().getConexao();
@@ -359,6 +330,14 @@ public class TelaPrincipal extends javax.swing.JFrame
             ResultSet resultado = declaracao.getResultSet();
             resultado.next();
             ultimoIdManutencao = resultado.getInt("last_value");
+            sqlScript = "SELECT id_manu FROM manutencao;";
+            declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            resultado = declaracao.getResultSet();
+            
+            if(!resultado.next() && ultimoIdManutencao == 1)
+                ultimoIdManutencao = 0;
+            
             conexao.close();
         }
         catch (SQLException ex)
@@ -408,17 +387,59 @@ public class TelaPrincipal extends javax.swing.JFrame
         }
     }
     
-    public void editarManutencao(Manutencao manutencao, int posicao)
+    public void editarManutencao(Manutencao manutencao)
     {
-        manutencoes.remove(posicao);
-        manutencoes.add(posicao, manutencao);
+        try
+        {
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "UPDATE manutencao SET id_equip = '" + (manutencao.getEquipamento().getId() + 1) + "', id_func = '" + (manutencao.getResponsavel().getId() + 1) + "', data_inicio = '" + manutencao.getDataInicioTimeStamp() + "', data_conclusao = '" + manutencao.getDataConclusaoTimeStamp() + "', manu_iniciada = '" + manutencao.getManutencaoIniciada() + "', manu_concluida = '" + manutencao.getManutencaoConcluida() + "', descricao = '" + manutencao.getDescricao() + "' WHERE id_manu = " + (manutencao.getId() + 1) + ";";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            
+            if(manutencao.getTipoManutencao().contains("Corretiva"))
+                sqlScript = "UPDATE manutencao_corretiva SET causa_falha = '" + ((ManutencaoCorretiva) manutencao).getCausaFalha() + "' WHERE id_manu = " + (manutencao.getId() + 1) + ";";
+            else
+                sqlScript = "UPDATE manutencao_preventiva SET data_agendamento = '" + ((ManutencaoPreventiva) manutencao).getDataAgendamentoStamp() + "', periodicidade = '" + ((ManutencaoPreventiva) manutencao).getPeriodicidade() + "' WHERE id_manu = " + (manutencao.getId() + 1) + ";";
+            
+            declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaListaFuncionarios.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        carregarManutencoes();
         atualizarListaManutencoes();
     }
     
     public void removerManutencao (Manutencao manutencao)
     {
-        manutencoes.remove(manutencao);
-        atualizarListaManutencoes();
+        try
+        {
+            String sqlScript = null;
+            
+            if(manutencao.getTipoManutencao().contains("Corretiva"))
+                sqlScript = "DELETE FROM manutencao_corretiva WHERE id_manu = " + (manutencao.getId() + 1) + ";";
+            else
+                sqlScript = "DELETE FROM manutencao_preventiva WHERE id_manu = " + (manutencao.getId() + 1) + ";";
+            
+            Connection conexao = new Conexao().getConexao();
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            sqlScript = "DELETE FROM manutencao WHERE id_manu = " + (manutencao.getId() + 1) + ";";
+            declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            conexao.close();
+            carregarManutencoes();
+            manutencoes.remove(manutencao);
+            atualizarListaManutencoes();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
     
     public void fecharJanela(JInternalFrame janela)
@@ -466,15 +487,6 @@ public class TelaPrincipal extends javax.swing.JFrame
                 " ",
                 item.getTipoManutencao()});
             }
-        }
-        
-        try
-        {
-            salvarManutencoes();
-        }
-        catch (IOException ex)
-        {
-            Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
@@ -645,7 +657,6 @@ public class TelaPrincipal extends javax.swing.JFrame
             {
                 if(abrirJanela(telaEditarManutencaoCorretiva))
                 {
-                    telaEditarManutencaoCorretiva.setPosicaoListaManutencao(jTable1.getSelectedRow());
                     telaEditarManutencaoCorretiva.getLabelId().setText(String.valueOf(manutencaoSelecionada.getId()));
                     telaEditarManutencaoCorretiva.getCampoEquipamento().removeAllItems();
 
@@ -701,7 +712,6 @@ public class TelaPrincipal extends javax.swing.JFrame
             {
                 if(abrirJanela(telaEditarManutencaoPreventiva))
                 {
-                    telaEditarManutencaoPreventiva.setPosicaoListaManutencao(jTable1.getSelectedRow());
                     telaEditarManutencaoPreventiva.getLabelId().setText(String.valueOf(manutencaoSelecionada.getId()));
                     telaEditarManutencaoPreventiva.getCampoEquipamento().removeAllItems();
 
@@ -774,10 +784,7 @@ public class TelaPrincipal extends javax.swing.JFrame
 
     private void botaoRemoverActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botaoRemoverActionPerformed
         if(jTable1.getSelectedRow() != -1)
-        {
             removerManutencao((manutencoes.get(jTable1.getSelectedRow())));
-        }
-        //abrirJanela(telaConfirmacao);
     }//GEN-LAST:event_botaoRemoverActionPerformed
 
     public static void main(String args[]) {

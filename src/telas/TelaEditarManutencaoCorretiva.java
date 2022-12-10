@@ -14,7 +14,6 @@ import javax.swing.JTextField;
 public class TelaEditarManutencaoCorretiva extends javax.swing.JInternalFrame implements Utils
 {
     private final TelaPrincipal telaPrincipal;
-    private int posicaoListaManutencao;
     
     public TelaEditarManutencaoCorretiva(TelaPrincipal tela)
     {
@@ -106,11 +105,6 @@ public class TelaEditarManutencaoCorretiva extends javax.swing.JInternalFrame im
     public JLabel getLabelId()
     {
         return labelId;
-    }
-
-    public void setPosicaoListaManutencao(int posicaoListaManutencao)
-    {
-        this.posicaoListaManutencao = posicaoListaManutencao;
     }
     
     @SuppressWarnings("unchecked")
@@ -361,7 +355,7 @@ public class TelaEditarManutencaoCorretiva extends javax.swing.JInternalFrame im
             );
 
             manutencao.setId(Integer.parseInt(labelId.getText()));
-            telaPrincipal.editarManutencao(manutencao, posicaoListaManutencao);
+            telaPrincipal.editarManutencao(manutencao);
             telaPrincipal.fecharLimparJanela(this);
         }
     }//GEN-LAST:event_botaoSalvarActionPerformed

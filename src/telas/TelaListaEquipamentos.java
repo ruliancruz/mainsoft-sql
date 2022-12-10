@@ -1,12 +1,8 @@
 package telas;
+
 import BancoDados.Conexao;
 import java.util.ArrayList;
 import classes.Equipamento;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -20,34 +16,16 @@ import javax.swing.table.DefaultTableModel;
 public class TelaListaEquipamentos extends javax.swing.JInternalFrame
 {
     private final TelaPrincipal telaPrincipal;
-    private final String caminhoPastaEquipamentos;
-    private final String caminhoArquivoEquipamentos;
-    private final String caminhoEquipamentos;
     private ArrayList<Equipamento> listaEquipamentos;
     private long ultimoIdEquipamento;
     
     public TelaListaEquipamentos(TelaPrincipal tela)
     {
         initComponents();
-        this.caminhoPastaEquipamentos = "data";
-        this.caminhoArquivoEquipamentos = "equipamentos.dat";
-        this.caminhoEquipamentos = caminhoPastaEquipamentos + "/" + caminhoArquivoEquipamentos;
         this.ultimoIdEquipamento = 0;
         telaPrincipal = tela;
         
-        try
-        {
-            carregarEquipamentos();
-        }
-        catch (IOException ex)
-        {
-            Logger.getLogger(TelaListaEquipamentos.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        catch (ClassNotFoundException ex)
-        {
-            Logger.getLogger(TelaListaEquipamentos.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        
+        carregarEquipamentos();
         atualizarListaEquipamentos();
     }
     
@@ -124,33 +102,22 @@ public class TelaListaEquipamentos extends javax.swing.JInternalFrame
         pack();
     }// </editor-fold>//GEN-END:initComponents
     
-    public void salvarEquipamentos() throws FileNotFoundException, IOException
-    {
-        File arquivo = new File("data");
-        
-        if(arquivo.exists() || arquivo.isDirectory())
-            arquivo.mkdir();
-        
-        ObjectOutputStream registrador = new ObjectOutputStream(new FileOutputStream(caminhoEquipamentos));
-        registrador.writeObject(listaEquipamentos);
-        registrador.close();
-    }
-    
-    public ArrayList<Equipamento> carregarEquipamentos() throws FileNotFoundException, IOException, ClassNotFoundException
+    public ArrayList<Equipamento> carregarEquipamentos()
     {
         ArrayList<Equipamento> lista = new ArrayList<Equipamento>();
         
         try
         {
             Connection conexao = new Conexao().getConexao();
-            String sqlScript = "SELECT * FROM equipamento";
+            String sqlScript = "SELECT * FROM equipamento ORDER BY id_equip";
             PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
             declaracao.execute();
             ResultSet resultado = declaracao.getResultSet();
             
             while(resultado.next())
             {
-                Equipamento equipamento = new Equipamento(resultado.getString("nome"), resultado.getString("modelo"), resultado.getString("fabricante"), (resultado.getString("data_aquisicao").replace('-', '/')));
+                Equipamento equipamento = new Equipamento(resultado.getString("nome"), resultado.getString("modelo"), resultado.getString("fabricante"));
+                equipamento.setDataAquisicaoSQL(resultado.getString("data_aquisicao"));
                 equipamento.setId(resultado.getInt("id_equip") - 1);
                 lista.add(equipamento);
             }
@@ -174,7 +141,6 @@ public class TelaListaEquipamentos extends javax.swing.JInternalFrame
             if(telaPrincipal.abrirJanela(telaPrincipal.getTelaEditarEquipamento()))
             {
                 equipamentoSelecionado = listaEquipamentos.get(tabelaEquipamento.getSelectedRow());
-                telaPrincipal.getTelaEditarEquipamento().setPosicaoListaEquipamento(tabelaEquipamento.getSelectedRow());
                 telaPrincipal.getTelaEditarEquipamento().getLabelId().setText(String.valueOf(equipamentoSelecionado.getId()));
                 telaPrincipal.getTelaEditarEquipamento().getCampoNome().setText(equipamentoSelecionado.getNome());
                 telaPrincipal.getTelaEditarEquipamento().getCampoModelo().setText(equipamentoSelecionado.getModelo());
@@ -186,10 +152,7 @@ public class TelaListaEquipamentos extends javax.swing.JInternalFrame
 
     private void botaoRemoverActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_botaoRemoverActionPerformed
         if(tabelaEquipamento.getSelectedRow() != -1)
-        {
             removerEquipamento((listaEquipamentos.get(tabelaEquipamento.getSelectedRow())));
-            atualizarListaEquipamentos();
-        }
     }//GEN-LAST:event_botaoRemoverActionPerformed
     
     public void adicionarEquipamento(Equipamento equipamento)
@@ -218,7 +181,7 @@ public class TelaListaEquipamentos extends javax.swing.JInternalFrame
         try
         {
             Connection conexao = new Conexao().getConexao();
-            String sqlScript = "INSERT INTO equipamento (nome, modelo, fabricante, data_aquisicao) VALUES ('" + equipamento.getNome() + "', '" + equipamento.getModelo() + "', '" + equipamento.getFabricante() + "', '" + equipamento.getDataAquisicaoString() + "');";
+            String sqlScript = "INSERT INTO equipamento (nome, modelo, fabricante, data_aquisicao) VALUES ('" + equipamento.getNome() + "', '" + equipamento.getModelo() + "', '" + equipamento.getFabricante() + "', '" + equipamento.getDataAquisicaoStringSQL() + "');";
             PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
             declaracao.execute();
             conexao.close();
@@ -229,10 +192,22 @@ public class TelaListaEquipamentos extends javax.swing.JInternalFrame
         }
     }
     
-    public void editarEquipamento(Equipamento equipamento, int posicao)
+    public void editarEquipamento(Equipamento equipamento)
     {
-        listaEquipamentos.remove(posicao);
-        listaEquipamentos.add(posicao, equipamento);
+        try
+        {
+            Connection conexao = new Conexao().getConexao();
+            String sqlScript = "UPDATE equipamento SET nome = '" + equipamento.getNome() + "', modelo = '" + equipamento.getModelo() + "', fabricante = '" + equipamento.getFabricante() + "', data_aquisicao = '" + equipamento.getDataAquisicaoStringSQL() + "' WHERE id_equip = " + (equipamento.getId() + 1) + ";";
+            PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            conexao.close();
+        }
+        catch (SQLException ex)
+        {
+            Logger.getLogger(TelaListaFuncionarios.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        carregarEquipamentos();
         atualizarListaEquipamentos();
     }
     
@@ -242,7 +217,7 @@ public class TelaListaEquipamentos extends javax.swing.JInternalFrame
         {
             int quantidadeDependencias = 0;
             Connection conexao = new Conexao().getConexao();
-            String sqlScript = "SELECT peca.id_equip FROM peca FULL JOIN manutencao ON peca.id_equip = manutencao.id_equip WHERE peca.id_equip = " + (equipamento.getId() + 1) +";";
+            String sqlScript = "SELECT peca.id_equip FROM peca FULL JOIN manutencao ON peca.id_equip = manutencao.id_equip WHERE peca.id_equip = " + (equipamento.getId() + 1) + " OR manutencao.id_equip = " + (equipamento.getId() + 1) + ";";
             PreparedStatement declaracao = conexao.prepareStatement(sqlScript);
             declaracao.execute();
             ResultSet resultado = declaracao.getResultSet();
@@ -264,24 +239,24 @@ public class TelaListaEquipamentos extends javax.swing.JInternalFrame
                 sqlScript = "DELETE FROM manutencao WHERE id_equip = " + (equipamento.getId() + 1) + ";";
                 declaracao = conexao.prepareStatement(sqlScript);
                 declaracao.execute();
-                sqlScript = "DELETE FROM equipamento WHERE id_equip = " + (equipamento.getId() + 1) + ";";
-                declaracao = conexao.prepareStatement(sqlScript);
-                declaracao.execute();
                 
                 telaPrincipal.carregarManutencoes();
+                telaPrincipal.atualizarListaManutencoes();
                 telaPrincipal.getTelaListaPecas().carregarPecas();
                 telaPrincipal.getTelaListaPecas().atualizarListaPecas();
             }
             
+            sqlScript = "DELETE FROM equipamento WHERE id_equip = " + (equipamento.getId() + 1) + ";";
+            declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
             conexao.close();
+            carregarEquipamentos();
+            atualizarListaEquipamentos();
         }
         catch (SQLException ex)
         {
             Logger.getLogger(TelaPrincipal.class.getName()).log(Level.SEVERE, null, ex);
         }
-        
-        listaEquipamentos.remove(equipamento);
-        atualizarListaEquipamentos();
     }
     
     public void atualizarListaEquipamentos()
@@ -290,15 +265,6 @@ public class TelaListaEquipamentos extends javax.swing.JInternalFrame
         
         for(Equipamento item : listaEquipamentos)
             ((DefaultTableModel) tabelaEquipamento.getModel()).addRow(new Object[]{ item.getId(), item.getNome(), item.getModelo(), item.getFabricante(), item.getDataAquisicaoString() });
-        
-        try
-        {
-            salvarEquipamentos();
-        }
-        catch (IOException ex)
-        {
-            Logger.getLogger(TelaListaEquipamentos.class.getName()).log(Level.SEVERE, null, ex);
-        }
     }
     
     public ArrayList<Equipamento> getListaEquipamentos()
