@@ -99,13 +99,13 @@ END;$$;
 
 -- Implementação de Trigger:
 
-CREATE FUNCTION trigger_manutencao ()
+CREATE FUNCTION trigger_manutencao()
     RETURNS TRIGGER
     LANGUAGE plpgsql
     AS $$
 	BEGIN
     	INSERT INTO manutencao (NEW.id_manu, NEW.data_inicio, NEW.data_conclusao, NEW.manu_iniciada, NEW.manu_concluida, NEW.descricao, NEW.tipo_manu, NEW.id_equip, NEW.id_func)
-    	VALUES (03, NULL, NULL, 55, 00, 'enferrujado', 'completa', 01, 2);
+    	VALUES (1, NULL, NULL, 'true', 'false', 'enferrujado', 'completa', 1, 2);
     	RETURN NEW;
 	END; $$;
 
@@ -113,9 +113,9 @@ CREATE TRIGGER after_manutencao_update
 	AFTER UPDATE
 	ON manutencao
 	FOR EACH STATEMENT
-	EXECUTE PROCEDURE trigger_manutencao ();
+	EXECUTE PROCEDURE trigger_manutencao();
    
-DROP TRIGGER IF EXISTS after_manutencao_update ON manutencao RESTRICT;
+-- DROP TRIGGER IF EXISTS after_manutencao_update ON manutencao RESTRICT;
 
 -- Outra implementação de Trigger:
 
@@ -124,8 +124,8 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 AS $$
 BEGIN
-INSERT INTO equipamento(new.id_equip,new.nome,new.modelo,new.fabricante,new.data_aquisicao)
-VALUES (1,maquina-1,ft200,itaipava,null);
+INSERT INTO equipamento(new.id_equip, new.nome, new.modelo, new.fabricante, new.data_aquisicao)
+VALUES (1, 'maquina-1', 'ft200', 'itaicava', '09-01-2016');
 RETURN new;
 END;$$;
 
@@ -135,7 +135,7 @@ ON equipamento
 FOR EACH ROW
 EXECUTE PROCEDURE trigger_equipamento();
 
-DROP TRIGGER IF EXISTS before_equipamento_update ON equipamento restrict;
+-- DROP TRIGGER IF EXISTS before_equipamento_update ON equipamento RESTRICT;
 
 -- Updates:
 
