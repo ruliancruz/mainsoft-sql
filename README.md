@@ -5,10 +5,10 @@ Esse sistema é uma versão do <a href="https://github.com/ruliancruz/mainsoft">
 Projeto desenvolvido como requisito parcial de conclusão da disciplina de Banco de Dados do curso de Licenciatura em Computação do IFBA - Campus Jacobina.
 
 ### Equipe
-<a href="https://github.com/ruliancruz">Rulian Cruz</a>;
-Jailane Moreira;
-Crislaine Souza;
-Willans Daniel Silva;
+<a href="https://github.com/ruliancruz">Rulian Cruz</a>;<br>
+Jailane Moreira;<br>
+Crislaine Souza;<br>
+Willans Daniel Silva;<br>
 
 #### Equipe do Mainsoft Original
 <a href="https://github.com/ruliancruz">Rulian Cruz</a>: Programação e Interface;
