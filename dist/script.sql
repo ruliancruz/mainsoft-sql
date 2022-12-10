@@ -18,7 +18,8 @@ CREATE TABLE peca
 	id_equip INT REFERENCES equipamento (id_equip) NOT NULL
 );
 
-CREATE TABLE funcionario (
+CREATE TABLE funcionario
+(
 	id_func SERIAL PRIMARY KEY NOT NULL,
 	nome VARCHAR (30) NOT NULL
 );
@@ -115,7 +116,7 @@ CREATE TRIGGER after_manutencao_update
 	FOR EACH STATEMENT
 	EXECUTE PROCEDURE trigger_manutencao();
    
--- DROP TRIGGER IF EXISTS after_manutencao_update ON manutencao RESTRICT;
+--DROP TRIGGER IF EXISTS after_manutencao_update ON manutencao RESTRICT;
 
 -- Outra implementação de Trigger:
 
@@ -135,7 +136,7 @@ ON equipamento
 FOR EACH ROW
 EXECUTE PROCEDURE trigger_equipamento();
 
--- DROP TRIGGER IF EXISTS before_equipamento_update ON equipamento RESTRICT;
+--DROP TRIGGER IF EXISTS before_equipamento_update ON equipamento RESTRICT;
 
 -- Updates:
 
