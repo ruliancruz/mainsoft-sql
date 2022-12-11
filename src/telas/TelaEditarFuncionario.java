@@ -1,7 +1,6 @@
 package telas;
 
 import classes.Funcionario;
-import classes.Manutencao;
 import classes.Utils;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;

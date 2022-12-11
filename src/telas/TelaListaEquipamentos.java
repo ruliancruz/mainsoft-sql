@@ -166,6 +166,14 @@ public class TelaListaEquipamentos extends javax.swing.JInternalFrame
             ResultSet resultado = declaracao.getResultSet();
             resultado.next();
             ultimoIdEquipamento = resultado.getInt("last_value");
+            sqlScript = "SELECT id_equip FROM equipamento;";
+            declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            resultado = declaracao.getResultSet();
+            
+            if(!resultado.next() && ultimoIdEquipamento == 1)
+                ultimoIdEquipamento = 0;
+            
             conexao.close();
         }
         catch (SQLException ex)

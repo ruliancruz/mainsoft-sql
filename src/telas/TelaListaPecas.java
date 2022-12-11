@@ -188,6 +188,14 @@ public class TelaListaPecas extends javax.swing.JInternalFrame
             ResultSet resultado = declaracao.getResultSet();
             resultado.next();
             ultimoIdPeca = resultado.getInt("last_value");
+            sqlScript = "SELECT id_peca FROM peca;";
+            declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            resultado = declaracao.getResultSet();
+            
+            if(!resultado.next() && ultimoIdPeca == 1)
+                ultimoIdPeca = 0;
+            
             conexao.close();
         }
         catch (SQLException ex)

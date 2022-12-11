@@ -1,8 +1,6 @@
 package telas;
 
 import classes.Equipamento;
-import classes.Manutencao;
-import classes.Peca;
 import classes.Utils;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;

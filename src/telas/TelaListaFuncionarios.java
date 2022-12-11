@@ -163,6 +163,14 @@ public class TelaListaFuncionarios extends javax.swing.JInternalFrame
             ResultSet resultado = declaracao.getResultSet();
             resultado.next();
             ultimoIdFuncionario = resultado.getInt("last_value");
+            sqlScript = "SELECT id_func FROM funcionario;";
+            declaracao = conexao.prepareStatement(sqlScript);
+            declaracao.execute();
+            resultado = declaracao.getResultSet();
+            
+            if(!resultado.next() && ultimoIdFuncionario == 1)
+                ultimoIdFuncionario = 0;
+            
             conexao.close();
         }
         catch (SQLException ex)
