@@ -8,10 +8,10 @@ Projeto desenvolvido como requisito parcial de conclusão da disciplina de Banco
 <a href="https://github.com/ruliancruz">Rulian Cruz</a>;<br>
 Jailane Moreira;<br>
 Crislaine Souza;<br>
-Willans Daniel Silva;<br>
+Willans Daniel Silva.<br>
 
 #### Equipe do Mainsoft Original
 <a href="https://github.com/ruliancruz">Rulian Cruz</a>: Programação e Interface;
 <br><a href="https://github.com/gacav-lab">Gabriel Oliveira</a>: Programação;
 <br><a href="https://github.com/devdiegomiranda">Diego Miranda</a>: Imagens;
-<br><a href="https://github.com/gessecarneiro">Gessé Carneiro</a>: Suporte;
+<br><a href="https://github.com/gessecarneiro">Gessé Carneiro</a>: Suporte.
