@@ -2,7 +2,7 @@
 
 This system is a version of <a href="https://github.com/ruliancruz/mainsoft">Mainsoft</a> with data persistence using PostgreSQL instead of binary files.
 
-Project developed as a partial requirement for completion of the Database discipline of the Degree in Computing at IFBA - Campus Jacobina.
+Project developed as a partial requirement for completion of the Database subject of the Degree in Computing at IFBA - Campus Jacobina.
 
 ### Team
 <a href="https://github.com/ruliancruz">Rulian Cruz</a>;<br>
