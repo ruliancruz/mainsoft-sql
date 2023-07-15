@@ -1,6 +1,6 @@
 # MainsoftSQL
 
-This system is a version of <a href="https://github.com/ruliancruz/mainsoft">Mainsoft</a> with data persistence in PostgreSQL using JDBC instead of binary files.
+This system is a version of <a href="https://github.com/ruliancruz/mainsoft">Mainsoft</a> with data persistence using PostgreSQL and JDBC instead of binary files.
 
 Project developed as a partial requirement for completion of the Database subject of the Degree in Computing at IFBA - Campus Jacobina.
 
